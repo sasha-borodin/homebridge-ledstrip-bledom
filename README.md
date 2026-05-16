@@ -1,5 +1,7 @@
 # homebridge-ledstrip-bledom
 
+> Fork of [@bjclopes/homebridge-ledstrip-bledom](https://github.com/bjclopes/homebridge-ledstrip-bledom), updated to use [@stoprocent/noble](https://github.com/stoprocent/noble), with the bugs identified in `ble-harness/GAPS.md` fixed, and made compatible with Homebridge 2.
+
 This plugin let you control RGB Bluetooth-enabled "ELK-BLEDOM" LED light strips, that are compatible with the Lotus Lantern app.
 
 Control On/Off, Hue, Saturation and Brightness.
@@ -9,9 +11,11 @@ You need to have a bluetooth device. Check using `hcitool dev` command. You may 
 
 To run without root access, go to homebridge terminal and type ```sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)```
 
+This command must be re-run any time the Node binary changes — typically after a Node version upgrade.
+
 ## Installation
 
-`npm i @bjclopes/homebridge-ledstrip-bledom`
+`npm i @sasha-borodin/homebridge-ledstrip-bledom`
 
 From version 2.0.11, the plugin is being run in a child bridge and, as a fail-safe, the child bridge restarts if the peripheral becomes unreacheable.
 
@@ -27,7 +31,8 @@ From version 2.0.11, the plugin is being run in a child bridge and, as a fail-sa
 To find your device uuid, use `hcitool lescan`, grab the device uuid, remove all ':' and use lowercase alpha characters
 
 ## Contribution
-This package is based on the work of [Lylya](https://github.com/Lyliya) on the project [homebridge-ledstrip-ble](https://github.com/Lyliya/homebridge-ledstrip-ble/).
+This package is a fork of [@bjclopes/homebridge-ledstrip-bledom](https://github.com/bjclopes/homebridge-ledstrip-bledom) by [bjclopes](https://github.com/bjclopes).
+The original plugin is based on the work of [Lyliya](https://github.com/Lyliya) on the project [homebridge-ledstrip-ble](https://github.com/Lyliya/homebridge-ledstrip-ble/).
 The new configuration parameters are based on the work of [user154lt](https://github.com/user154lt) on the project [ELK-BLEDOM-Command-Util](https://github.com/user154lt/ELK-BLEDOM-Command-Util).
 
 You can contribute by creating merge request, you can find a documentation of the BLE message used here : [Documentation](https://github.com/arduino12/ble_rgb_led_strip_controller/blob/master/README.md)
