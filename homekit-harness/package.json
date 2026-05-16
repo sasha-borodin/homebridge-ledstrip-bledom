@@ -1,0 +1,14 @@
+{
+  "name": "homekit-harness",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HomeKit-layer test harness for the fixed ELK-BLEDOM plugin",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "ISC"
+}
