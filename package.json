@@ -5,7 +5,7 @@
     "description": "",
     "main": "index.js",
     "dependencies": {
-        "@abandonware/noble": "^1.9.2-26",
+        "@stoprocent/noble": "^2.4.0",
         "prompt-sync": "^4.2.0"
     },
     "keywords": [

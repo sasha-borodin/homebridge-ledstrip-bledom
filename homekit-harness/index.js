@@ -391,6 +391,7 @@ async function runFullSuite(mockHB, device, writeState) {
 
   log('── 8. Power off ──');
   await testPowerOff(mockHB);
+  await sleep(1000);
 
   log('════ SUITE COMPLETE ════');
 }

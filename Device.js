@@ -1,43 +1,23 @@
-const noble = require("@abandonware/noble");
+const noble = require("@stoprocent/noble");
 
 function log(message) {
   console.log(`[homebridge-ledstrip]:`, message);
 }
 
-// Monkey patch console.warn to catch critical noble warnings
-const originalWarn = console.warn;
-console.warn = function (...args) {
-  const message = args.join(" ");
-  if (message.includes("unknown peripheral")) {
-    log("Critical noble failure. Exiting to trigger Homebridge restart...");
-    process.exit(1); // Exit to let Homebridge auto-restart the plugin
-  }
-  originalWarn.apply(console, args);
-};
-
-function hslToRgb(h, s, l) {
-  let r, g, b;
-
-  if (s == 0) {
-    r = g = b = l; // achromatic
-  } else {
-    const hue2rgb = function hue2rgb(p, q, t) {
-      if (t < 0) t += 1;
-      if (t > 1) t -= 1;
-      if (t < 1 / 6) return p + (q - p) * 6 * t;
-      if (t < 1 / 2) return q;
-      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-      return p;
-    };
-
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
-    r = hue2rgb(p, q, h + 1 / 3);
-    g = hue2rgb(p, q, h);
-    b = hue2rgb(p, q, h - 1 / 3);
-  }
-
-  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+function hsvToRgb(h, s, v) {
+  s /= 100;
+  v /= 100;
+  const c = v * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = v - c;
+  let r = 0, g = 0, b = 0;
+  if      (h <  60) { r = c; g = x; b = 0; }
+  else if (h < 120) { r = x; g = c; b = 0; }
+  else if (h < 180) { r = 0; g = c; b = x; }
+  else if (h < 240) { r = 0; g = x; b = c; }
+  else if (h < 300) { r = x; g = 0; b = c; }
+  else              { r = c; g = 0; b = x; }
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
 }
 
 module.exports = class Device {
@@ -48,7 +28,6 @@ module.exports = class Device {
     this.brightness = 100;
     this.hue = 0;
     this.saturation = 0;
-    this.l = 0.5;
     this.peripheral = undefined;
     this.debounceTimer = null;
 
@@ -64,7 +43,7 @@ module.exports = class Device {
     noble.on("discover", async (peripheral) => {
       if (peripheral.uuid === this.uuid) {
         if (this.connected || (this.peripheral && this.peripheral.state === 'connecting')) {
-          return; // Don't keep trying if we're already connected or connecting
+          return;
         }
 
         log(`Discovered target device: ${peripheral.uuid}`);
@@ -77,7 +56,8 @@ module.exports = class Device {
           log(`Connect failed after discovery: ${err.message}`);
           this.peripheral = undefined;
           this.connected = false;
-          noble.startScanningAsync(); // Resume scanning
+          await new Promise(r => setTimeout(r, 5000));
+          noble.startScanningAsync();
         }
       }
     });
@@ -90,8 +70,6 @@ module.exports = class Device {
       log(`Connecting to ${this.peripheral.uuid}...`);
       try {
         await this.peripheral.connectAsync();
-        log(`Connected`);
-        this.connected = true;
 
         const { characteristics } =
           await this.peripheral.discoverSomeServicesAndCharacteristicsAsync(
@@ -99,6 +77,8 @@ module.exports = class Device {
             ["fff3"]
           );
         this.write = characteristics[0];
+        this.connected = true;
+        log(`Connected`);
       } catch (err) {
         log(`Connection error: ${err.message}`);
         throw err;
@@ -120,67 +100,81 @@ module.exports = class Device {
 
   async set_power(status) {
     if (!this.connected) await this.connectAndGetWriteCharacteristics();
-    if (this.write) {
-      const buffer = Buffer.from(
-        `7e0404${status ? "01" : "00"}00${status ? "01" : "00"}ff00ef`,
-        "hex"
-      );
+    if (!this.write) {
+      log("Command dropped: device not yet discovered");
+      return;
+    }
+    const buffer = Buffer.from(
+      `7e0404${status ? "01" : "00"}00${status ? "01" : "00"}ff00ef`,
+      "hex"
+    );
+    try {
+      await this.write.writeAsync(buffer, true);
+      this.power = status;
       log("Power command sent");
-      this.write.write(buffer, true, (err) => {
-        if (err) console.log("Error:", err);
-        this.power = status;
-//        this.debounceDisconnect();
-      });
+      this.debounceDisconnect();
+    } catch (err) {
+      log("Power write error: " + err.message);
     }
   }
 
   async set_brightness(level) {
     if (level > 100 || level < 0) return;
     if (!this.connected) await this.connectAndGetWriteCharacteristics();
-    if (this.write) {
-      const level_hex = ("0" + level.toString(16)).slice(-2);
-      const buffer = Buffer.from(`7e0401${level_hex}ffffff00ef`, "hex");
+    if (!this.write) {
+      log("Command dropped: device not yet discovered");
+      return;
+    }
+    const level_hex = ("0" + level.toString(16)).slice(-2);
+    const buffer = Buffer.from(`7e0401${level_hex}ffffff00ef`, "hex");
+    try {
+      await this.write.writeAsync(buffer, true);
+      this.brightness = level;
       log("Brightness command sent");
-      this.write.write(buffer, true, (err) => {
-        if (err) console.log("Error:", err);
-        this.brightness = level;
-//        this.debounceDisconnect();
-      });
+      this.debounceDisconnect();
+    } catch (err) {
+      log("Brightness write error: " + err.message);
     }
   }
 
   async set_rgb(r, g, b) {
     if (!this.connected) await this.connectAndGetWriteCharacteristics();
-    if (this.write) {
-      const rhex = ("0" + r.toString(16)).slice(-2);
-      const ghex = ("0" + g.toString(16)).slice(-2);
-      const bhex = ("0" + b.toString(16)).slice(-2);
-      const buffer = Buffer.from(`7e070503${rhex}${ghex}${bhex}10ef`, "hex");
+    if (!this.write) {
+      log("Command dropped: device not yet discovered");
+      return;
+    }
+    const rhex = ("0" + r.toString(16)).slice(-2);
+    const ghex = ("0" + g.toString(16)).slice(-2);
+    const bhex = ("0" + b.toString(16)).slice(-2);
+    const buffer = Buffer.from(`7e070503${rhex}${ghex}${bhex}10ef`, "hex");
+    try {
+      await this.write.writeAsync(buffer, true);
       log("Colour command sent");
-      this.write.write(buffer, true, (err) => {
-        if (err) console.log("Error:", err);
-//        this.debounceDisconnect();
-      });
+      this.debounceDisconnect();
+    } catch (err) {
+      log("Colour write error: " + err.message);
     }
   }
 
   async set_hue(hue) {
     if (!this.connected) await this.connectAndGetWriteCharacteristics();
-    if (this.write) {
-      this.hue = hue;
-      const rgb = hslToRgb(hue / 360, this.saturation / 100, this.l);
-      await this.set_rgb(rgb[0], rgb[1], rgb[2]);
-//      this.debounceDisconnect();
+    if (!this.write) {
+      log("Command dropped: device not yet discovered");
+      return;
     }
+    this.hue = hue;
+    const rgb = hsvToRgb(this.hue, this.saturation, this.brightness);
+    await this.set_rgb(rgb[0], rgb[1], rgb[2]);
   }
 
   async set_saturation(saturation) {
     if (!this.connected) await this.connectAndGetWriteCharacteristics();
-    if (this.write) {
-      this.saturation = saturation;
-      const rgb = hslToRgb(this.hue / 360, saturation / 100, this.l);
-      await this.set_rgb(rgb[0], rgb[1], rgb[2]);
-//      this.debounceDisconnect();
+    if (!this.write) {
+      log("Command dropped: device not yet discovered");
+      return;
     }
+    this.saturation = saturation;
+    const rgb = hsvToRgb(this.hue, this.saturation, this.brightness);
+    await this.set_rgb(rgb[0], rgb[1], rgb[2]);
   }
 };
