@@ -18,20 +18,20 @@ function LedStrip(log, config, api) {
   // Set up Event Handler for bulb on/off
   this.bulb
     .getCharacteristic(Characteristic.On)
-    .on('get', this.getPower.bind(this))
-    .on('set', this.setPower.bind(this));
+    .onGet(this.getPower.bind(this))
+    .onSet(this.setPower.bind(this));
   this.bulb
     .getCharacteristic(Characteristic.Brightness)
-    .on('get', this.getBrightness.bind(this))
-    .on('set', this.setBrightness.bind(this));
+    .onGet(this.getBrightness.bind(this))
+    .onSet(this.setBrightness.bind(this));
   this.bulb
     .getCharacteristic(Characteristic.Hue)
-    .on('get', this.getHue.bind(this))
-    .on('set', this.setHue.bind(this));
+    .onGet(this.getHue.bind(this))
+    .onSet(this.setHue.bind(this));
   this.bulb
     .getCharacteristic(Characteristic.Saturation)
-    .on('get', this.getSaturation.bind(this))
-    .on('set', this.setSaturation.bind(this));
+    .onGet(this.getSaturation.bind(this))
+    .onSet(this.setSaturation.bind(this));
 
   this.log('all event handler was setup.');
 
@@ -51,38 +51,34 @@ LedStrip.prototype = {
     infoService.setCharacteristic(Characteristic.Manufacturer, 'LedStrip');
     return [infoService, this.bulb];
   },
-  getPower: function (callback) {
+  getPower: function () {
     this.log('Homekit Asked Power State', this.device.connected);
-    callback(null, this.device.power);
+    return this.device.power;
   },
-  setPower: async function (on, callback) {
+  setPower: async function (on) {
     this.log('Homekit Gave New Power State' + ' ' + on);
-    try { await this.device.set_power(on); } catch (err) { return callback(err); }
-    callback(null);
+    await this.device.set_power(on);
   },
-  getBrightness: function (callback) {
+  getBrightness: function () {
     this.log('Homekit Asked Brightness');
-    callback(null, this.device.brightness);
+    return this.device.brightness;
   },
-  setBrightness: async function (brightness, callback) {
+  setBrightness: async function (brightness) {
     this.log('Homekit Set Brightness', brightness);
-    try { await this.device.set_brightness(brightness); } catch (err) { return callback(err); }
-    callback(null);
+    await this.device.set_brightness(brightness);
   },
-  getHue: function (callback) {
-    callback(null, this.device.hue);
+  getHue: function () {
+    return this.device.hue;
   },
-  setHue: async function (hue, callback) {
+  setHue: async function (hue) {
     this.log('Homekit Set Hue', hue);
-    try { await this.device.set_hue(hue); } catch (err) { return callback(err); }
-    callback(null);
+    await this.device.set_hue(hue);
   },
-  getSaturation: function (callback) {
-    callback(null, this.device.saturation);
+  getSaturation: function () {
+    return this.device.saturation;
   },
-  setSaturation: async function (saturation, callback) {
+  setSaturation: async function (saturation) {
     this.log('Homekit Set Saturation', saturation);
-    try { await this.device.set_saturation(saturation); } catch (err) { return callback(err); }
-    callback(null);
+    await this.device.set_saturation(saturation);
   }
 };

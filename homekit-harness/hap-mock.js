@@ -12,7 +12,7 @@
  *   homebridge.registerAccessory(plugin, name, Ctor)
  *
  * Each Lightbulb instance exposes:
- *   service.getCharacteristic(char)  → stub with .on('get'|'set', handler)
+ *   service.getCharacteristic(char)  → stub with .onGet(handler) / .onSet(handler)
  *
  * The returned mockHB object additionally exposes:
  *   getRegisteredCtor()              → the LedStrip constructor captured by registerAccessory
@@ -31,8 +31,12 @@ const CHARS = {
 function makeCharStub() {
   const handlers = { get: null, set: null };
   const stub = {
-    on(event, fn) {
-      handlers[event] = fn;
+    onGet(fn) {
+      handlers.get = fn;
+      return stub;
+    },
+    onSet(fn) {
+      handlers.set = fn;
       return stub;
     },
     setCharacteristic() {
@@ -76,29 +80,19 @@ function createMockHomebridge() {
     },
 
     simulateGet(charKey) {
-      return new Promise((resolve, reject) => {
-        const stub = charStubs[charKey];
-        if (!stub || !stub._handlers.get) {
-          return reject(new Error(`No get handler registered for characteristic "${charKey}"`));
-        }
-        stub._handlers.get((err, value) => {
-          if (err) reject(err);
-          else resolve(value);
-        });
-      });
+      const stub = charStubs[charKey];
+      if (!stub || !stub._handlers.get) {
+        return Promise.reject(new Error(`No get handler registered for characteristic "${charKey}"`));
+      }
+      return Promise.resolve(stub._handlers.get());
     },
 
     simulateSet(charKey, value) {
-      return new Promise((resolve, reject) => {
-        const stub = charStubs[charKey];
-        if (!stub || !stub._handlers.set) {
-          return reject(new Error(`No set handler registered for characteristic "${charKey}"`));
-        }
-        stub._handlers.set(value, (err) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
+      const stub = charStubs[charKey];
+      if (!stub || !stub._handlers.set) {
+        return Promise.reject(new Error(`No set handler registered for characteristic "${charKey}"`));
+      }
+      return Promise.resolve(stub._handlers.set(value));
     },
   };
 
