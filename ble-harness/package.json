@@ -1,0 +1,17 @@
+{
+  "name": "ble-harness",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone BLE test harness for ELK-BLEDOM LED strips using @stoprocent/noble",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "dependencies": {
+    "@stoprocent/noble": "^2.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "ISC"
+}
