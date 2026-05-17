@@ -1,4 +1,5 @@
 const Device = require('./Device');
+const { name: pluginName } = require('./package.json');
 
 let Service, Characteristic;
 
@@ -6,7 +7,7 @@ let Service, Characteristic;
 module.exports = function (homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  homebridge.registerAccessory('@bjclopes/homebridge-ledstrip-bledom', 'LedStrip', LedStrip);
+  homebridge.registerAccessory(pluginName, 'LedStrip', LedStrip);
 };
 
 function LedStrip(log, config, api) {

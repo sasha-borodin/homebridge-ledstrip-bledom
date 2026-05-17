@@ -1,8 +1,13 @@
 {
-    "name": "@bjclopes/homebridge-ledstrip-bledom",
-    "version": "2.0.11",
+    "name": "@sasha-borodin/homebridge-ledstrip-bledom",
+    "version": "1.0.0",
     "displayName": "Homebridge Ledstrip BLEDOM",
     "description": "",
+    "files": [
+        "index.js",
+        "Device.js",
+        "config.schema.json"
+    ],
     "main": "index.js",
     "dependencies": {
         "@stoprocent/noble": "^2.4.0",
@@ -20,12 +25,12 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/bjclopes/homebridge-ledstrip-bledom.git"
+        "url": "git+https://github.com/sasha-borodin/homebridge-ledstrip-bledom.git"
     },
     "author": "",
     "license": "ISC",
     "bugs": {
-        "url": "https://github.com/bjclopes/homebridge-ledstrip-bledom/issues"
+        "url": "https://github.com/sasha-borodin/homebridge-ledstrip-bledom/issues"
     },
-    "homepage": "https://github.com/bjclopes/homebridge-ledstrip-bledom#readme"
+    "homepage": "https://github.com/sasha-borodin/homebridge-ledstrip-bledom#readme"
 }
